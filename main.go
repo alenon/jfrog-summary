@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/alenon/jfrog-summary/commands"
 	"github.com/jfrog/jfrog-cli-core/plugins"
 	"github.com/jfrog/jfrog-cli-core/plugins/components"
-	"github.com/jfrog/jfrog-cli-plugin-template/commands"
 )
 
 func main() {
@@ -12,14 +12,14 @@ func main() {
 
 func getApp() components.App {
 	app := components.App{}
-	app.Name = "hello-frog"
-	app.Description = "Easily greet anyone."
-	app.Version = "v0.1.0"
+	app.Name = "summary"
+	app.Description = "JFrog CLI plugin for live summary visualisation"
+	app.Version = "v0.1"
 	app.Commands = getCommands()
 	return app
 }
 
 func getCommands() []components.Command {
 	return []components.Command{
-		commands.GetHelloCommand()}
+		commands.GetStorageCommand()}
 }
