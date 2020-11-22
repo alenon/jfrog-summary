@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/alenon/jfrog-summary/commands"
+	"github.com/alenon/rt-summary/commands"
 	"github.com/jfrog/jfrog-cli-core/plugins"
 	"github.com/jfrog/jfrog-cli-core/plugins/components"
 )
@@ -14,7 +14,7 @@ func getApp() components.App {
 	app := components.App{}
 	app.Name = "rt-summary"
 	app.Description = "Artifactory summary live visualisation"
-	app.Version = "v0.1"
+	app.Version = "1.0.0"
 	app.Commands = getCommands()
 	return app
 }

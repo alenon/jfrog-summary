@@ -1,4 +1,4 @@
-module github.com/alenon/jfrog-summary
+module github.com/alenon/rt-summary
 
 go 1.14
 

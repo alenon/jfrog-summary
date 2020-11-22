@@ -1,43 +1,52 @@
-# hello-frog
+# Artifactory Summary JFrog CLI plugin
 
 ## About this plugin
-This plugin is a template and a functioning example for a basic JFrog CLI plugin. 
-This README shows the expected structure of your plugin's README.
+Artifactory summary live visualisation (currently supported storage only).
 
 ## Installation with JFrog CLI
 Installing the latest version:
 
-`$ jfrog plugin install hello-frog`
+`$ jfrog plugin install rt-summary`
 
 Installing a specific version:
 
-`$ jfrog plugin install hello-frog@version`
+`$ jfrog plugin install rt-summary@version`
 
 Uninstalling a plugin
 
-`$ jfrog plugin uninstall hello-frog`
+`$ jfrog plugin uninstall rt-summary`
 
 ## Usage
 ### Commands
-* hello
-    - Arguments:
-        - addressee - The name of the person you would like to greet.
-    - Flags:
-        - shout: Makes output uppercase **[Default: false]**
-        - repeat: Greets multiple times **[Default: 1]**
+* storage - Artifactory storage summary
+
+    - Usage: `jfrog rt-summary storage [command options]`
+
+    - Options:
+        - **server-id** - Artifactory server ID configured using the config command *[Optional]*
+        - **refresh-rate** - summary refresh rate in seconds *[Default: 2]* 
+        - **recalculate-rate** - storage summary recalculation rate in seconds. If 0 recalculation will not be triggered *[Default: 0]*
     - Example:
     ```
-  $ jfrog hello-frog hello world --shout --repeat=2
+  $ jfrog rt-summary st
   
-  NEW GREETING: HELLO WORLD!
-  NEW GREETING: HELLO WORLD!
+    Last updated at: Sun, 22 Nov 2020 10:11:27 IST
+    Last recalculated at: Sun, 22 Nov 2020 10:11:27 IST
+    
+    +------------------------+---------+--------------+---------------+--------------+--------------+
+    |       REPOSITORY       |  TYPE   | PACKAGE TYPE |  FILES COUNT  |  USED SPACE  |  PERCENTAGE  |
+    +------------------------+---------+--------------+---------------+--------------+--------------+
+    | jcenter-cache          | CACHE   | Maven        | 0             | 0 bytes      | 0%           |
+    | libs-snapshot          | VIRTUAL | Maven        | 0             | 0 bytes      | 0%           |
+    | libs-snapshot-local    | LOCAL   | Maven        | 0             | 0 bytes      | 0%           |
+    | artifactory-build-info | LOCAL   | BuildInfo    | 0             | 0 bytes      | 0%           |
+    | auto-trashcan          | NA      | NA           | 8             | 12.07 MB     | 99.14%       |
+    | libs-release           | VIRTUAL | Maven        | 0             | 0 bytes      | 0%           |
+    | libs-release-local     | LOCAL   | Maven        | 2             | 107.41 KB    | 0.86%        |
+    | jfrog-support-bundle   | NA      | NA           | 0             | 0 bytes      | 0%           |
+    | TOTAL                  | NA      |              | 10            | 12.18 MB     |              |
+    +------------------------+---------+--------------+---------------+--------------+--------------+
   ```
-
-### Environment variables
-* HELLO_FROG_GREET_PREFIX - Adds a prefix to every greet **[Default: New greeting: ]**
-
-## Additional info
-None.
 
 ## Release Notes
 The release notes are available [here](RELEASE.md).
