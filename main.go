@@ -12,8 +12,8 @@ func main() {
 
 func getApp() components.App {
 	app := components.App{}
-	app.Name = "summary"
-	app.Description = "JFrog CLI plugin for live summary visualisation"
+	app.Name = "rt-summary"
+	app.Description = "Artifactory summary live visualisation"
 	app.Version = "v0.1"
 	app.Commands = getCommands()
 	return app

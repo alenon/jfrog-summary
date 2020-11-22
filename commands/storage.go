@@ -84,13 +84,14 @@ func getStorageFlags() []components.Flag {
 		},
 		components.StringFlag{
 			Name:         RecalculateRate,
-			Description:  "Trigger server storage summary recalculate rate in seconds",
-			DefaultValue: "120",
+			Description:  "Storage summary recalculation rate in seconds. If 0 recalculation will not be triggered",
+			DefaultValue: "0",
 		},
 	}
 }
 
 func storageCmd(c *components.Context) error {
+
 	conf, err := prepareSummaryConf(c)
 	if err != nil {
 		return err
@@ -108,35 +109,35 @@ func fetchAndPresentSummary(conf *summaryConfiguration, rtDetails *config.Artifa
 	client *rthttpclient.ArtifactoryHttpClient, httpClientDetails *httputils.HttpClientDetails) error {
 
 	tm.Clear() // Clear current screen
-	lastUpdate := time.Unix(0, 0)
+	lastUpdated := time.Unix(0, 0)
 	lastRecalculate := time.Unix(0, 0)
 	for {
-		shouldRefreshView := int(time.Since(lastUpdate).Seconds()) >= conf.refreshRate
-		shouldRecalculate := int(time.Since(lastRecalculate).Seconds()) >= conf.recalculateRate
-		if shouldRecalculate {
+		if shouldRecalculate(conf, lastRecalculate) {
 			go triggerRecalculate(rtDetails, client, httpClientDetails)
 			lastRecalculate = time.Now()
 		}
-		if !shouldRefreshView {
+		if !shouldUpdateView(conf, lastUpdated) {
 			continue
 		}
 
 		tm.MoveCursor(0, 0)
 		_, _ = tm.Println("Last updated at:", time.Now().Format(time.RFC1123))
-		_, _ = tm.Println("Last recalculated at:", lastRecalculate.Format(time.RFC1123))
+		if lastRecalculate.After(time.Unix(0, 0)) {
+			_, _ = tm.Println("Last recalculated at:", lastRecalculate.Format(time.RFC1123))
+		}
 
-		tm.MoveCursor(0, 4)
 		err := showStorageSummary(rtDetails, client, httpClientDetails)
 		if err != nil {
 			return err
 		}
 		tm.Flush() // Call it every time at the end of rendering
-		lastUpdate = time.Now()
+		lastUpdated = time.Now()
 	}
 }
 
 func triggerRecalculate(rtDetails *config.ArtifactoryDetails, client *rthttpclient.ArtifactoryHttpClient,
 	httpClientDetails *httputils.HttpClientDetails) {
+
 	resp, _, err :=
 		client.SendPost(rtDetails.GetUrl()+"api/storageinfo/calculate", nil, httpClientDetails)
 	if err != nil {
@@ -149,17 +150,8 @@ func triggerRecalculate(rtDetails *config.ArtifactoryDetails, client *rthttpclie
 
 func showStorageSummary(rtDetails *config.ArtifactoryDetails, client *rthttpclient.ArtifactoryHttpClient,
 	httpClientDetails *httputils.HttpClientDetails) error {
-	resp, respBody, _, err :=
-		client.SendGet(rtDetails.GetUrl()+"api/storageinfo", false, httpClientDetails)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return errorutils.CheckError(errors.New("Artifactory response: " + resp.Status))
-	}
 
-	var summaryStruct Summary
-	err = json.Unmarshal(respBody, &summaryStruct)
+	storageSummary, err := fetchStorageSummary(rtDetails, client, httpClientDetails)
 	if err != nil {
 		return err
 	}
@@ -183,7 +175,7 @@ func showStorageSummary(rtDetails *config.ArtifactoryDetails, client *rthttpclie
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor})
 
-	for _, row := range summaryStruct.RepositoriesSummaryList {
+	for _, row := range storageSummary.RepositoriesSummaryList {
 		table.Append([]string{
 			row.RepoKey,
 			row.RepoType,
@@ -198,7 +190,28 @@ func showStorageSummary(rtDetails *config.ArtifactoryDetails, client *rthttpclie
 	return nil
 }
 
+func fetchStorageSummary(rtDetails *config.ArtifactoryDetails, client *rthttpclient.ArtifactoryHttpClient,
+	httpClientDetails *httputils.HttpClientDetails) (*Summary, error) {
+	resp, respBody, _, err :=
+		client.SendGet(rtDetails.GetUrl()+"api/storageinfo", false, httpClientDetails)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errorutils.CheckError(errors.New("Artifactory response: " + resp.Status))
+	}
+
+	var summaryStruct Summary
+	err = json.Unmarshal(respBody, &summaryStruct)
+	if err != nil {
+		return nil, err
+	}
+
+	return &summaryStruct, nil
+}
+
 func prepareSummaryConf(c *components.Context) (*summaryConfiguration, error) {
+
 	var summaryConfig = new(summaryConfiguration)
 	refreshRate, err := strconv.Atoi(c.GetStringFlagValue(RefreshRate))
 	if err != nil {
@@ -214,7 +227,9 @@ func prepareSummaryConf(c *components.Context) (*summaryConfiguration, error) {
 	return summaryConfig, nil
 }
 
-func prepareHttpClient(c *components.Context) (*config.ArtifactoryDetails, *rthttpclient.ArtifactoryHttpClient, *httputils.HttpClientDetails, error) {
+func prepareHttpClient(c *components.Context) (*config.ArtifactoryDetails,
+	*rthttpclient.ArtifactoryHttpClient, *httputils.HttpClientDetails, error) {
+
 	rtDetails, err := getRtDetails(c)
 	if err != nil {
 		return nil, nil, nil, err
@@ -243,6 +258,7 @@ func prepareHttpClient(c *components.Context) (*config.ArtifactoryDetails, *rtht
 }
 
 func getRtDetails(c *components.Context) (*config.ArtifactoryDetails, error) {
+
 	serverId := c.GetStringFlagValue(ServerId)
 	details, err := commands.GetConfig(serverId, false)
 	if err != nil {
@@ -257,4 +273,15 @@ func getRtDetails(c *components.Context) (*config.ArtifactoryDetails, error) {
 		return nil, err
 	}
 	return details, nil
+}
+
+func shouldRecalculate(conf *summaryConfiguration, lastRecalculate time.Time) bool {
+
+	return conf.recalculateRate > 0 &&
+		int(time.Since(lastRecalculate).Seconds()) >= conf.recalculateRate
+}
+
+func shouldUpdateView(conf *summaryConfiguration, lastUpdate time.Time) bool {
+
+	return int(time.Since(lastUpdate).Seconds()) >= conf.refreshRate
 }
