@@ -1,7 +1,5 @@
 # Artifactory Summary JFrog CLI plugin
-
-## About this plugin
-Artifactory summary live visualisation (currently supported storage only).
+Artifactory summary live visualisation (currently supported storage summary only).
 
 ## Installation with JFrog CLI
 Installing the latest version:
