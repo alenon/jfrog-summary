@@ -42,6 +42,8 @@ github.com/jfrog/jfrog-cli-core v1.1.0 h1:FA1Z63FuWdwT0bg4NoGP2Qh0nSx8LD8CFdzy8W
 github.com/jfrog/jfrog-cli-core v1.1.0/go.mod h1:zKXkCzmNpdyTo2+nIqTU61i719JVFydijSqYCUHlrW8=
 github.com/jfrog/jfrog-cli-core v1.1.2-0.20201118101632-f498d864d81b h1:/dwPxjNjRlsgmhZHqQPpzRsNDiXrKgenSMogq+31Ryo=
 github.com/jfrog/jfrog-cli-core v1.1.2-0.20201118101632-f498d864d81b/go.mod h1:tazUzga9nleV1/SKxJ1CB8Dho6qjvMtuFz4XJ8R81j8=
+github.com/jfrog/jfrog-cli-core v1.1.2 h1:BfDJYS+3K+qhWy5c6iFM48UYRYtX+0VtFj80QzfmYwQ=
+github.com/jfrog/jfrog-cli-core v1.1.2/go.mod h1:tazUzga9nleV1/SKxJ1CB8Dho6qjvMtuFz4XJ8R81j8=
 github.com/jfrog/jfrog-cli-plugin-template v0.0.0-20201108094844-6f964e5b81f7 h1:5EuXwBl9MBDkEbQlKOy/4jWrydAouQdQEz7pm/CLYwY=
 github.com/jfrog/jfrog-cli-plugin-template v0.0.0-20201108094844-6f964e5b81f7/go.mod h1:9NHPL8MOCA2mmmS0F1svPBktoFmpO5kBS79LTJ5bTec=
 github.com/jfrog/jfrog-client-go v0.10.0/go.mod h1:rKxpmcVmqPhhiFLxftmuhrf/scgVNNHQ8Y9pSrc2vBo=

@@ -1,18 +1,10 @@
 package commands
 
 import (
-	"github.com/jfrog/jfrog-cli-core/plugins/components"
-	"github.com/magiconair/properties/assert"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
-
-func TestSummaryConfigDefaultValues(t *testing.T) {
-	ctx := &components.Context{}
-	conf, _ := prepareSummaryConf(ctx)
-	assert.Equal(t, conf.refreshRate, 2)
-	assert.Equal(t, conf.recalculateRate, 2)
-}
 
 func TestShouldUpdateView(t *testing.T) {
 	conf := summaryConfiguration{refreshRate: 2}
