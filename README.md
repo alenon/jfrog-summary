@@ -22,6 +22,8 @@ Uninstalling a plugin
 
     - Options:
         - **server-id** - Artifactory server ID configured using the config command *[Optional]*
+        - **live** - live summary update *[Default: false]*
+        - **repo-list** - comma separated repositories list to show *[Default: all]*
         - **refresh-rate** - summary refresh rate in seconds *[Default: 2]* 
         - **recalculate-rate** - storage summary recalculation rate in seconds. If 0 recalculation will not be triggered *[Default: 0]*
         - **max-results** - maximal amount of shown results *[Default: 10]*

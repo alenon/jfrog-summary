@@ -15,6 +15,7 @@ import (
 	"github.com/jfrog/jfrog-client-go/utils/log"
 	"github.com/olekukonko/tablewriter"
 	"net/http"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,6 +24,8 @@ import (
 
 const (
 	ServerId        = "server-id"
+	Live            = "live"
+	RepoList        = "repo-list"
 	RefreshRate     = "refresh-rate"
 	RecalculateRate = "recalculate-rate"
 	MaximumResults  = "max-results"
@@ -57,9 +60,11 @@ type Summary struct {
 }
 
 type summaryConfiguration struct {
+	live            bool
 	refreshRate     int
 	recalculateRate int
 	maxResults      int
+	repoList        []string
 }
 
 func GetStorageCommand() components.Command {
@@ -78,21 +83,31 @@ func getStorageFlags() []components.Flag {
 	return []components.Flag{
 		components.StringFlag{
 			Name:        ServerId,
-			Description: "Artifactory server ID configured using the config command.",
+			Description: "Artifactory server ID configured using the config command [Optional]",
+		},
+		components.BoolFlag{
+			Name:         Live,
+			Description:  "live summary update",
+			DefaultValue: false,
+		},
+		components.StringFlag{
+			Name:         RepoList,
+			Description:  "comma separated repositories list to show",
+			DefaultValue: "",
 		},
 		components.StringFlag{
 			Name:         RefreshRate,
-			Description:  "Summary refresh rate in seconds",
+			Description:  "summary refresh rate in seconds",
 			DefaultValue: "2",
 		},
 		components.StringFlag{
 			Name:         RecalculateRate,
-			Description:  "Storage summary recalculation rate in seconds. If 0 recalculation will not be triggered",
+			Description:  "storage summary recalculation rate in seconds. If 0 recalculation will not be triggered",
 			DefaultValue: "0",
 		},
 		components.StringFlag{
 			Name:         MaximumResults,
-			Description:  "Maximal amount of shown results",
+			Description:  "maximal amount of shown results",
 			DefaultValue: "10",
 		},
 	}
@@ -141,7 +156,13 @@ func fetchAndPresentSummary(conf *summaryConfiguration, rtDetails *config.Artifa
 		}
 		tm.Flush() // Call it every time at the end of rendering
 		lastUpdated = time.Now()
+
+		if !conf.live {
+			break
+		}
 	}
+
+	return nil
 }
 
 func triggerRecalculate(rtDetails *config.ArtifactoryDetails, client *rthttpclient.ArtifactoryHttpClient,
@@ -181,6 +202,10 @@ func showStorageSummary(conf *summaryConfiguration, rtDetails *config.Artifactor
 				totalsItem.UsedSpace,
 				"-"})
 			break
+		}
+
+		if len(conf.repoList) > 0 && !contains(conf.repoList, row.RepoKey) {
+			continue
 		}
 
 		table.Append([]string{
@@ -237,10 +262,13 @@ func fetchStorageSummary(rtDetails *config.ArtifactoryDetails, client *rthttpcli
 		return nil, err
 	}
 
-	sort.Slice(summaryStruct.RepositoriesSummaryList, func(i, j int) bool {
+	sort.SliceStable(summaryStruct.RepositoriesSummaryList, func(i, j int) bool {
 		if summaryStruct.RepositoriesSummaryList[i].RepoKey == "TOTAL" {
 			return false
+		} else if summaryStruct.RepositoriesSummaryList[j].RepoKey == "TOTAL" {
+			return true
 		}
+
 		return percentageSToI(summaryStruct.RepositoriesSummaryList[i].Percentage) >
 			percentageSToI(summaryStruct.RepositoriesSummaryList[j].Percentage)
 	})
@@ -249,29 +277,38 @@ func fetchStorageSummary(rtDetails *config.ArtifactoryDetails, client *rthttpcli
 
 func prepareSummaryConf(c *components.Context) (*summaryConfiguration, error) {
 
-	var summaryConfig = new(summaryConfiguration)
+	var conf = new(summaryConfiguration)
+
+	live := c.GetBoolFlagValue(Live)
+	conf.live = live
+
 	refreshRate, err := strconv.Atoi(c.GetStringFlagValue(RefreshRate))
 	if err != nil {
 		return nil, errors.New("Illegal " + RefreshRate + " value. ")
 	}
-	summaryConfig.refreshRate = refreshRate
+	conf.refreshRate = refreshRate
 
 	recalculateRate, err := strconv.Atoi(c.GetStringFlagValue(RecalculateRate))
 	if err != nil {
 		return nil, errors.New("Illegal " + RecalculateRate + " value. ")
 	}
-	summaryConfig.recalculateRate = recalculateRate
+	conf.recalculateRate = recalculateRate
 
 	maxResults, err := strconv.Atoi(c.GetStringFlagValue(MaximumResults))
 	if err != nil {
 		return nil, errors.New("Illegal " + MaximumResults + " value. ")
 	}
-	summaryConfig.maxResults = maxResults
-	return summaryConfig, nil
+	conf.maxResults = maxResults
+
+	repoList := c.GetStringFlagValue(RepoList)
+	if strings.TrimSpace(repoList) != "" {
+		conf.repoList = strings.Split(repoList, ",")
+	}
+	return conf, nil
 }
 
-func prepareHttpClient(c *components.Context) (*config.ArtifactoryDetails,
-	*rthttpclient.ArtifactoryHttpClient, *httputils.HttpClientDetails, error) {
+func prepareHttpClient(c *components.Context) (*config.ArtifactoryDetails, *rthttpclient.ArtifactoryHttpClient,
+	*httputils.HttpClientDetails, error) {
 
 	rtDetails, err := getRtDetails(c)
 	if err != nil {
@@ -330,10 +367,24 @@ func shouldUpdateView(conf *summaryConfiguration, lastUpdate time.Time) bool {
 }
 
 func percentageSToI(percentage string) float64 {
+	isValidPercentage, _ := regexp.MatchString("^[\\d\\.]+%$", percentage)
+	if !isValidPercentage {
+		return 0
+	}
+
 	percentageFloatString := percentage[0 : len(percentage)-1]
 	percentageFloat, err := strconv.ParseFloat(percentageFloatString, 64)
 	if err != nil {
 		log.Error("Failed parsing percentage value '" + percentage + "'")
 	}
 	return percentageFloat
+}
+
+func contains(list []string, item string) bool {
+	for _, a := range list {
+		if a == item {
+			return true
+		}
+	}
+	return false
 }
